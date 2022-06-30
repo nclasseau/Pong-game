@@ -17,20 +17,27 @@ const Canvas = () => {
 
         console.log(ball.radius, ball.y)
 
-        // faire rebondir la balle sur le mur sud
-        if (ball.radius + ball.y >= size.height) {
-            ball.vy = -ball.vy
-        }
-
-        // faire rebondir la balle sur le mur est
-        if (ball.radius + ball.x >= size.width) {
+        // faire rebondir la balle sur le mur est et ouest 
+        // on utilise le ball.radius pour faire rebondir la balle des qu'elle touche le mur
+        if (ball.x + ball.vx >= size.width - ball.radius) {
             ball.vx = -ball.vx
         }
 
-        // faire rebondir balle sur le mur nord
-        if (ball.radius - ball.y >= size.height) {
-
+        // faire rebondir la balle sur le mur ouest 
+        if (ball.x + ball.vx <= ball.radius) {
+            ball.vx = -ball.vx
         }
+
+        // faire rebondir la balle sur le mur sud 
+        if (ball.y + ball.vy >= size.height - ball.radius) {
+            ball.vy = -ball.vy
+        }
+
+        // faire rebondir la balle sur mur nord 
+        if (ball.y + ball.vy <= ball.radius) {
+            ball.vy = -ball.vy
+        }
+
 
 
     };
