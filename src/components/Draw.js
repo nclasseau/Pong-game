@@ -1,6 +1,6 @@
-const draw = (context, size, ball, paddle) => {
+const draw = (context, size, ball, paddle, paddle2, score1, score2) => {
 
-    // effacer les traces de la balle  
+    // effacer les traces de la balle et du paddle 
     context.clearRect(0, 0, size.width, size.height);
 
     // dessiner la balle 
@@ -18,7 +18,7 @@ const draw = (context, size, ball, paddle) => {
 
 
     // dessiner le paddle 
-    const drawPaddle = (x, y, width, height, color) => {
+    const drawPaddle1 = (x, y, width, height, color) => {
 
         context.beginPath();
         context.rect(x, y, width, height);
@@ -28,7 +28,29 @@ const draw = (context, size, ball, paddle) => {
 
     }
 
-    drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, 'blue')
+    drawPaddle1(paddle.x, paddle.y, paddle.width, paddle.height, 'blue')
+
+    // dessiner le paddle 
+    const drawPaddle2 = (x, y, width, height, color) => {
+
+        context.beginPath();
+        context.rect(x, y, width, height);
+        context.fillStyle = color;
+        context.fill();
+        context.closePath();
+
+    }
+
+    drawPaddle2(paddle2.x, paddle2.y, paddle2.width, paddle2.height, 'blue')
+
+    // afficher score
+    const drawScore = (ctx, score1, score2) => {
+        ctx.font = '15px Arial';
+        ctx.fillStyle = '#0095DD';
+        ctx.fillText = (`${score1.score} || ${score2.score}`, 8, 20)
+    }
+
+    drawScore(context, score1, score2)
 
 }
 
