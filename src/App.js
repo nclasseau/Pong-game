@@ -4,9 +4,9 @@ import './styles/styles.css'
 function App() {
 
   return (
-    <>
-      <Canvas />
-    </>
+
+    <Canvas />
+
   )
 }
 

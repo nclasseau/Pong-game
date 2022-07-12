@@ -45,9 +45,8 @@ const draw = (context, size, ball, paddle, paddle2, score1, score2) => {
 
     // afficher score
     const drawScore = (ctx, score1, score2) => {
-        ctx.font = '15px Arial';
-        ctx.fillStyle = '#0095DD';
-        ctx.fillText = (`${score1.score} || ${score2.score}`, 8, 20)
+        ctx.font = '20px serif';
+        ctx.fillText(`${score2.score} ${score1.score}`, 250, 20);
     }
 
     drawScore(context, score1, score2)

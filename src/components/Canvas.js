@@ -1,15 +1,22 @@
 import '../styles/styles.css'
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import draw from "./Draw";
+import io from 'socket.io-client'
+
 
 const Canvas = () => {
+    //states
+    const [socket, setSocket] = useState(null);
+    const [isConnected, setIsConnected] = useState(socket.connected)
+
+    // useRef
     const canvasRef = useRef(null);
     const requestAnimationRef = useRef(null);
-    const ballRef = useRef({ x: 50, y: 50, vx: 3, vy: 3, radius: 10 });
+    const ballRef = useRef({ x: 300, y: 200, vx: 3, vy: 3, radius: 10 });
     const size = { width: 600, height: 300 };
     const paddle1Ref = useRef({ height: 100, width: 10, x: 10, y: 80 });
     const paddle2Ref = useRef({ height: 100, width: 10, x: 580, y: 80 });
-    const score1Ref = useRef({ score: 0 })
+    const score1Ref = useRef({ score: 0 });
     const score2Ref = useRef({ score: 0 });
 
 
@@ -25,9 +32,8 @@ const Canvas = () => {
         let score2 = score2Ref.current;
 
         let newBallX = ball.x + ball.vx;
-        let newBallY = ball.y + ball.vy
+        let newBallY = ball.y + ball.vy;
 
-        // console.log(ball.y)
 
         // faire rebondir la balle sur le mur Est
         // on utilise le ball.radius pour faire rebondir la balle des qu'elle touche le mur
@@ -35,6 +41,11 @@ const Canvas = () => {
         if (newBallX >= (size.width - ball.radius) - paddle1.width) {
             if (newBallY < paddle2.y || newBallY > paddle2.y + 100) {
                 score2.score++
+                resetPosition()
+                if (score2.score === 5) {
+                    alert('Game Over');
+                    window.location.reload()
+                }
             } else {
                 ball.vx = -ball.vx
             }
@@ -45,6 +56,11 @@ const Canvas = () => {
         if (newBallX <= paddle1.width + ball.radius) {
             if (newBallY < paddle1.y || newBallY > paddle1.y + 100) {
                 score1.score++
+                resetPosition()
+                if (score1.score === 5) {
+                    alert('Game Over');
+                    window.location.reload()
+                }
             } else {
                 ball.vx = -ball.vx
             }
@@ -60,71 +76,47 @@ const Canvas = () => {
             ball.vy = -ball.vy
         }
 
-        console.log(score1, score2)
-
     };
 
-    // set variable a false, les touches ne sont pas enfoncees 
-    let upArrowPressed = false;
-    let downArrowPressed = false;
+    // appuie sur touche ou nn 
+    const keycode = {};
+
+    // const keyUp = () => {
+    //     keycode[e.key] = true
+    // }
+
+    // const keyDown = () => {
+    //     delete keycode[e.key] 
+    // }
+
 
     //event paddle
-
-    // event lorsque l'on appuie sur la touche ( on stock la variable a true)
-    const keyTouchHandler = (e) => {
-        // 38 correspond au keycode fleche du haut 
-        // 40 correpond au keycode fleche du bas 
-        if (e.keyCode === 38) {
-            upArrowPressed = true;
-        } else if (e.keyCode === 40) {
-            downArrowPressed = true
-        }
-    }
-
-    // event lorsque l'on n'appuie plus sur la touche ( on stock la variable a false)
-    const keyRemoveHandler = (e) => {
-        if (e.keyCode === 38) {
-            upArrowPressed = false;
-        } else if (e.keyCode === 40) {
-            downArrowPressed = false;
-        }
-    }
-
-    // paddle 1
-    const movePaddle1 = () => {
-        const paddle1 = paddle1Ref.current;
-        const paddle2 = paddle2Ref.current
-
-        // si touche arrowup enfoncee, deplacer le paddle de 3px sur axe y 
-        if (upArrowPressed) {
-            console.log('up')
-            paddle1.y -= 3
-            paddle2.y -= 3
-            // empeche le paddle de depasser le canvas
-            if (paddle1.y < 0) {
-                paddle1.y = 0
-                paddle2.y = 0
-            }
-        }
-        if (downArrowPressed) {
-            console.log('down')
-            paddle1.y += 3
-            paddle2.y += 3
-
-            if (paddle1.y + paddle1.height > size.height) {
-                paddle1.y = size.height - paddle1.height
-                paddle2.y = size.height - paddle2.height
-            }
-        }
+    const movePaddle = () => {
+        if (keycode['arrowUp']) socket.emit('move up')
+        if (keycode['arrowDown']) socket.emit('move down')
     }
 
 
+
+    //restart position 
+    const resetPosition = () => {
+        setTimeout(() => {
+            const ball = ballRef.current;
+            const paddle1 = paddle1Ref.current;
+            const paddle2 = paddle2Ref.current;
+
+            ball.x = 300
+
+            paddle1.y = 80
+            paddle2.y = 80
+        }, 1000)
+    }
 
 
     const renderDraw = () => {
         const ctx = canvasRef.current.getContext("2d");
         moveBall();
-        movePaddle1();
+        movePaddle();
         draw(ctx, size, ballRef.current, paddle1Ref.current, paddle2Ref.current, score1Ref.current, score2Ref.current);
 
     };
@@ -135,16 +127,25 @@ const Canvas = () => {
     };
 
     useEffect(() => {
-        // paddle
-        window.addEventListener('keydown', keyTouchHandler, false);
-        window.addEventListener('keyup', keyRemoveHandler, false)
+        //socket
+        const newSocket = io('http://localhost:3001')
+        setSocket(newSocket)
 
+        socket.on('connected', () => {
+            setIsConnected(true);
+        });
+
+        socket.on('disconnected', () => {
+            setIsConnected(false)
+        })
 
         // animationFrame permet de setInterval et donc de deplacer objets 
         requestAnimationRef.current = requestAnimationFrame(effect);
         return () => {
-            window.removeEventListener('keydown', keyTouchHandler);
-            window.removeEventListener('keyup', keyRemoveHandler);
+            //socket
+            socket.off('connect');
+            socket.off('disconnect');
+
             cancelAnimationFrame(requestAnimationRef.current);
         };
     }, []);
