@@ -18,7 +18,7 @@ const draw = (context, size, ball, paddle, paddle2, score1, score2) => {
 
 
     // dessiner le paddle 
-    const drawPaddle1 = (x, y, width, height, color) => {
+    const drawPaddle = (x, y, width, height, color) => {
 
         context.beginPath();
         context.rect(x, y, width, height);
@@ -28,20 +28,8 @@ const draw = (context, size, ball, paddle, paddle2, score1, score2) => {
 
     }
 
-    drawPaddle1(paddle.x, paddle.y, paddle.width, paddle.height, 'blue')
-
-    // dessiner le paddle 
-    const drawPaddle2 = (x, y, width, height, color) => {
-
-        context.beginPath();
-        context.rect(x, y, width, height);
-        context.fillStyle = color;
-        context.fill();
-        context.closePath();
-
-    }
-
-    drawPaddle2(paddle2.x, paddle2.y, paddle2.width, paddle2.height, 'blue')
+    drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height, 'blue')
+    drawPaddle(paddle2.x, paddle2.y, paddle2.width, paddle2.height, 'blue')
 
     // afficher score
     const drawScore = (ctx, score1, score2) => {

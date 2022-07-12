@@ -3,121 +3,80 @@ import { useRef, useEffect, useState } from "react";
 import draw from "./Draw";
 import io from 'socket.io-client'
 
+const url = 'http://127.0.0.1:3001'
+const socket = io(url)
+
 
 const Canvas = () => {
-    //states
-    const [socket, setSocket] = useState(null);
-    const [isConnected, setIsConnected] = useState(socket.connected)
+
+    //state
+    const [isConnected, setIsConnected] = useState(false);
+    const [ballX, setBallX] = useState(null)
+    const [ballY, setBallY] = useState(null)
+    const [score1, setScore1] = useState(null)
+    const [score2, setScore2] = useState(null)
+    const [paddle1Y, setPaddle1Y] = useState(null)
+    const [paddle2Y, setPaddle2Y] = useState(null)
 
     // useRef
     const canvasRef = useRef(null);
     const requestAnimationRef = useRef(null);
-    const ballRef = useRef({ x: 300, y: 200, vx: 3, vy: 3, radius: 10 });
-    const size = { width: 600, height: 300 };
-    const paddle1Ref = useRef({ height: 100, width: 10, x: 10, y: 80 });
-    const paddle2Ref = useRef({ height: 100, width: 10, x: 580, y: 80 });
-    const score1Ref = useRef({ score: 0 });
-    const score2Ref = useRef({ score: 0 });
+    //player en question
+    const playerRef = useRef('')
 
 
-    // ball
-    const moveBall = () => {
-        const ball = ballRef.current;
-        const paddle1 = paddle1Ref.current;
-        const paddle2 = paddle2Ref.current
-        ball.x += ball.vx;
-        ball.y += ball.vy;
 
-        let score1 = score1Ref.current;
-        let score2 = score2Ref.current;
+    //paddle, ball, size
 
-        let newBallX = ball.x + ball.vx;
-        let newBallY = ball.y + ball.vy;
+    const size = {
+        width: 600,
+        height: 300
+    }
 
+    const paddle1 = {
+        height: 100, width: 10, x: 10, y: paddle1Y
+    }
 
-        // faire rebondir la balle sur le mur Est
-        // on utilise le ball.radius pour faire rebondir la balle des qu'elle touche le mur
-        //faire rebondir la balle sur le paddle
-        if (newBallX >= (size.width - ball.radius) - paddle1.width) {
-            if (newBallY < paddle2.y || newBallY > paddle2.y + 100) {
-                score2.score++
-                resetPosition()
-                if (score2.score === 5) {
-                    alert('Game Over');
-                    window.location.reload()
-                }
-            } else {
-                ball.vx = -ball.vx
-            }
-        }
+    const paddle2 = {
+        height: 100, width: 10, x: 580, y: paddle2Y
+    }
 
-        // faire rebondir la balle sur le mur Ouest 
-        // faire rebondir balle sur le paddle
-        if (newBallX <= paddle1.width + ball.radius) {
-            if (newBallY < paddle1.y || newBallY > paddle1.y + 100) {
-                score1.score++
-                resetPosition()
-                if (score1.score === 5) {
-                    alert('Game Over');
-                    window.location.reload()
-                }
-            } else {
-                ball.vx = -ball.vx
-            }
-        }
-
-        // faire rebondir la balle sur le mur Sud 
-        if (newBallY >= size.height - ball.radius) {
-            ball.vy = -ball.vy
-        }
-
-        // faire rebondir la balle sur mur Nord 
-        if (newBallY <= ball.radius) {
-            ball.vy = -ball.vy
-        }
-
-    };
-
-    // appuie sur touche ou nn 
-    const keycode = {};
-
-    // const keyUp = () => {
-    //     keycode[e.key] = true
-    // }
-
-    // const keyDown = () => {
-    //     delete keycode[e.key] 
-    // }
+    const ball = {
+        x: ballX, y: ballY, vx: 3, vy: 3, radius: 10
+    }
 
 
     //event paddle
-    const movePaddle = () => {
-        if (keycode['arrowUp']) socket.emit('move up')
-        if (keycode['arrowDown']) socket.emit('move down')
+    const movePaddle = (keyCode) => {
+        if (keyCode === 38) {
+            socket.emit('movePaddle', { direction: 'up', player: playerRef.current })
+
+        }
+        if (keyCode === 40) {
+            socket.emit('movePaddle', { direction: 'down', player: playerRef.current })
+        }
     }
 
 
+    // //restart position 
+    // const resetPosition = () => {
+    //     setTimeout(() => {
+    //         const ball = ballRef.current;
+    //         const paddle1 = paddle1Ref.current;
+    //         const paddle2 = paddle2Ref.current;
 
-    //restart position 
-    const resetPosition = () => {
-        setTimeout(() => {
-            const ball = ballRef.current;
-            const paddle1 = paddle1Ref.current;
-            const paddle2 = paddle2Ref.current;
+    //         ball.x = 300
 
-            ball.x = 300
-
-            paddle1.y = 80
-            paddle2.y = 80
-        }, 1000)
-    }
+    //         paddle1.y = 80
+    //         paddle2.y = 80
+    //     }, 1000)
+    // }
 
 
     const renderDraw = () => {
         const ctx = canvasRef.current.getContext("2d");
-        moveBall();
         movePaddle();
-        draw(ctx, size, ballRef.current, paddle1Ref.current, paddle2Ref.current, score1Ref.current, score2Ref.current);
+        draw(ctx, size, ball, paddle1, paddle2, score1, score2);
 
     };
 
@@ -127,30 +86,74 @@ const Canvas = () => {
     };
 
     useEffect(() => {
-        //socket
-        const newSocket = io('http://localhost:3001')
-        setSocket(newSocket)
+        // connect or disconnect
+        socket.on('connect', () => {
+            setIsConnected(true)
+            //create or join rooms 
+            socket.emit('create', 'room1')
 
-        socket.on('connected', () => {
-            setIsConnected(true);
-        });
+        })
 
-        socket.on('disconnected', () => {
+        socket.on('data', (paddle1, paddle2, ball) => {
+            console.log(paddle1)
+            console.log(paddle2)
+            console.log(ball)
+
+            setPaddle1Y(paddle1.y)
+            setPaddle2Y(paddle2.y)
+            setBallX(ball.x)
+            setBallY(ball.y)
+        })
+
+
+        socket.on('disconnect', () => {
             setIsConnected(false)
         })
 
+        //score
+        socket.on('score1', (score1) => {
+            setScore1(score1)
+        })
+        socket.on('score2', (score2) => {
+            setScore2(score2)
+        })
+
+
+        // //paddle1 and 2 moved 
+        // socket.on('paddle1Moved', (y) => {
+        //     setPaddle1Y(y)
+        // })
+
+        // socket.on('paddle2Moved', (y) => {
+        //     setPaddle2Y(y)
+        // })
+
+        // //ball moved 
+        // socket.on('ballMoved', (x, y) => {
+        //     setBallX(x);
+        //     setBallY(y)
+        // })
+
+
         // animationFrame permet de setInterval et donc de deplacer objets 
         requestAnimationRef.current = requestAnimationFrame(effect);
-        return () => {
-            //socket
-            socket.off('connect');
-            socket.off('disconnect');
 
+
+        return () => {
+            //socket off
+            socket.off()
+
+            //animationFrame
             cancelAnimationFrame(requestAnimationRef.current);
         };
     }, []);
 
-    return <canvas ref={canvasRef} {...size} id='canva' />;
+    return (
+        <>
+            <p>Connected: {'' + isConnected}</p>
+            <canvas ref={canvasRef} {...size} id='canva' />
+        </>
+    )
 }
 
 export default Canvas;
